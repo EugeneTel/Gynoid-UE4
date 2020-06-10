@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Camera/CameraComponent.h"
 #include "UObject/Interface.h"
 #include "WeaponableInterface.generated.h"
 
@@ -31,7 +32,7 @@ public:
 
 	/**
 	* Returns the Camera of the Character
-	
-	UFUNCTION(BlueprintCallable)
-    USkeletalMeshComponent* GetCamera();*/
+	*/
+	UFUNCTION(BlueprintCallable, BlueprintNativeEvent)
+    UCameraComponent* GetCamera();
 };

@@ -2,9 +2,10 @@
 
 
 #include "Projectile.h"
-#include "Components/BoxComponent.h"
-#include "Particles/ParticleSystemComponent.h"
 #include "GameFramework/ProjectileMovementComponent.h"
+#include "Components/SphereComponent.h"
+#include "Particles/ParticleSystemComponent.h"
+
 
 // Sets default values
 AProjectile::AProjectile()
@@ -12,15 +13,26 @@ AProjectile::AProjectile()
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
-	// Initializing components
-	BoxComponent = CreateDefaultSubobject<UBoxComponent>(TEXT("BoxComponent"));
-	SetRootComponent(BoxComponent);
+	// Use a sphere as a simple collision representation
+	CollisionComp = CreateDefaultSubobject<USphereComponent>(TEXT("CollisionComponent"));
+	CollisionComp->InitSphereRadius(5.0f);
 
-	ParticleComponent = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("ParticleComponent"));
-	ParticleComponent->bAutoActivate = true;
-	ParticleComponent->SetupAttachment(BoxComponent);
+	// Players can't walk on it
+	CollisionComp->SetWalkableSlopeOverride(FWalkableSlopeOverride(WalkableSlope_Unwalkable, 0.f));
+	CollisionComp->CanCharacterStepUpOn = ECB_No;
+	
+	SetRootComponent(CollisionComp);
 
-	ProjectileMovementComponent = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("ProjectileMovementComponent"));
+	ParticleComp = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("ParticleComponent"));
+	ParticleComp->bAutoActivate = true;
+	ParticleComp->SetupAttachment(CollisionComp);
+
+	MovementComp = CreateDefaultSubobject<class UProjectileMovementComponent>(TEXT("MovementComponent"));
+	MovementComp->UpdatedComponent = CollisionComp;
+	MovementComp->InitialSpeed = 10000.0f;
+	MovementComp->MaxSpeed = 0.f;
+	MovementComp->bRotationFollowsVelocity = true;
+	MovementComp->ProjectileGravityScale = 0.f;
 }
 
 // Called when the game starts or when spawned
@@ -29,7 +41,7 @@ void AProjectile::BeginPlay()
 	Super::BeginPlay();
 
 	// Registering overlap function
-	BoxComponent->OnComponentBeginOverlap.AddDynamic(this, &AProjectile::OnOverlap);
+	CollisionComp->OnComponentBeginOverlap.AddDynamic(this, &AProjectile::OnOverlap);
 
 	//ProjectileMovementComponent
 }
@@ -39,6 +51,28 @@ void AProjectile::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+}
+
+void AProjectile::PostInitializeComponents()
+{
+	Super::PostInitializeComponents();
+	MovementComp->OnProjectileStop.AddDynamic(this, &AProjectile::OnImpact);
+	MovementComp->InitialSpeed = ProjectileData.InitialSpeed;
+
+	SetLifeSpan(ProjectileData.ProjectileLife);
+}
+
+void AProjectile::InitVelocity(FVector& ShootDirection) const
+{
+	if (MovementComp)
+	{
+		MovementComp->Velocity = ShootDirection * MovementComp->InitialSpeed;
+	}
+}
+
+void AProjectile::SetProjectileData(FProjectileWeaponData& InProjectileData)
+{
+	ProjectileData = InProjectileData;
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -58,9 +92,9 @@ void AProjectile::OnOverlap(
 //----------------------------------------------------------------------------------------------------------------------
 // Called when the projectile stops
 //----------------------------------------------------------------------------------------------------------------------
-void AProjectile::OnProjectileStop(const FHitResult& ImpactResult)
+void AProjectile::OnImpact(const FHitResult& ImpactResult)
 {
-	UE_LOG(LogTemp, Warning, TEXT("AProjectile::OnProjectileStop"));
+	UE_LOG(LogTemp, Warning, TEXT("AProjectile::OnImpact"));
 
 	Destroy();
 }

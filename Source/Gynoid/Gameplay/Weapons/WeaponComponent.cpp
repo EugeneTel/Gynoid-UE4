@@ -4,6 +4,7 @@
 #include "WeaponComponent.h"
 #include "Gynoid/Gameplay/Interfaces/WeaponableInterface.h"
 #include "Weapon.h"
+#include "GameFramework/Character.h"
 
 // Sets default values for this component's properties
 UWeaponComponent::UWeaponComponent()
@@ -21,7 +22,7 @@ void UWeaponComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
-	WeaponOwner = GetOwner();
+	WeaponOwner = Cast<ACharacter>(GetOwner());
 
 	SpawnStartWeapons();
 }
@@ -68,13 +69,13 @@ void UWeaponComponent::SpawnWeapon(TSubclassOf<AWeapon> WeaponClass)
 
 	if (!WeaponOwner->GetClass()->ImplementsInterface(UWeaponableInterface::StaticClass()))
 	{
-		UE_LOG(LogTemp, Error, TEXT("The Character Must implement IWeaponable interface for the Weapon System."));
+		UE_LOG(LogTemp, Error, TEXT("The Character Must implement WeaponableInterface interface for the Weapon System."));
 		return;
 	}
 
 	// spawn weapon
 	AWeapon* WeaponRef = World->SpawnActor<AWeapon>(WeaponClass->GetDefaultObject()->GetClass(), GetOwner()->GetTransform(), ActorSpawnParams);
-	//WeaponRef->SetActorHiddenInGame(true);
+	WeaponRef->SetActorHiddenInGame(true);
 
 	const FAttachmentTransformRules AttachmentTransformRules(EAttachmentRule::SnapToTarget, false);
 
@@ -102,6 +103,9 @@ void UWeaponComponent::SpawnStartWeapons()
 	{
 		SpawnWeapon(*It);
 	}
+
+	// Equip riffle by default
+	EquipWeapon(EWeaponType::EWT_Rifle);
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -109,6 +113,43 @@ void UWeaponComponent::SpawnStartWeapons()
 //----------------------------------------------------------------------------------------------------------------------
 void UWeaponComponent::EquipWeapon(EWeaponType WeaponType)
 {
+	if (EquippedWeapon)
+	{
+		UnEquipWeapon();
+	}
 	
+	AWeapon* WeaponToEquip = GetWeaponByType(WeaponType);
+	if (WeaponToEquip)
+	{
+		WeaponToEquip->SetActorHiddenInGame(false);
+		WeaponToEquip->SetOwningPawn(WeaponOwner);
+		EquippedWeapon = WeaponToEquip;
+
+		UE_LOG(LogTemp, Warning, TEXT("The Weapon Successfully Equipped"));
+	}
 }
+
+void UWeaponComponent::UnEquipWeapon()
+{
+	EquippedWeapon->SetActorHiddenInGame(true);
+	EquippedWeapon = nullptr;
+}
+
+void UWeaponComponent::OnStartFire()
+{
+	if (!EquippedWeapon)
+		return;
+
+	EquippedWeapon->StartFire();
+}
+
+void UWeaponComponent::OnStopFire()
+{
+	if (!EquippedWeapon)
+		return;
+
+	EquippedWeapon->StopFire();
+}
+
+
 

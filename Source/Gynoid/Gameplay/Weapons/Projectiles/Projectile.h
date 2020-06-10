@@ -3,8 +3,11 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameFramework/Actor.h"
+#include "Gynoid/Gameplay/Weapons/Weapon.h"
 #include "Projectile.generated.h"
+
+class USphereComponent;
+class UProjectileMovementComponent;
 
 /**
 * Base Projectile Class. Must be implemented by other projectiles
@@ -18,25 +21,34 @@ public:
 	// Sets default values for this actor's properties
 	AProjectile();
 
+	// Called every frame
+	virtual void Tick(float DeltaTime) override;
+
+	/** initial setup */
+	virtual void PostInitializeComponents() override;
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
 	/** The damage amount that this projectile applies to hit enemies */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Stats)
 	float Damage;
 
 	/** This component is just a  wrapper for collision generation. */
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Config")
-    class UBoxComponent* BoxComponent;
-
-	/** The particle system for the current projectile */
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Config")
-    UParticleSystemComponent* ParticleComponent;
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category=Config)
+    USphereComponent* CollisionComp;
 
 	/** The component responsible for the movement of the projectile */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-    class UProjectileMovementComponent* ProjectileMovementComponent;
+    UProjectileMovementComponent* MovementComp;
+
+	/** The particle system for the current projectile */
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category=Config)
+    UParticleSystemComponent* ParticleComp;
+
+	/** Projectile Data */
+	FProjectileWeaponData ProjectileData;
 
 	/**
 	 * Called when the box component overlapped
@@ -55,10 +67,13 @@ protected:
 	 * Called when the projectile stops
 	 */
 	UFUNCTION()
-    void OnProjectileStop(const FHitResult& ImpactResult);
+    void OnImpact(const FHitResult& ImpactResult);
 
 public:	
-	// Called every frame
-	virtual void Tick(float DeltaTime) override;
+
+	/** setup velocity */
+	void InitVelocity(FVector& ShootDirection) const;
+
+	void SetProjectileData(FProjectileWeaponData& InProjectileData);
 
 };

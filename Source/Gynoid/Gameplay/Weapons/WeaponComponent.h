@@ -2,12 +2,15 @@
 
 #pragma once
 
-#include "Weapon.h"
 #include "CoreMinimal.h"
-#include "Components/ActorComponent.h"
 #include "WeaponComponent.generated.h"
 
+enum class EWeaponType : uint8;
+class AWeapon;
 
+/**
+ * Weapon Component
+ */
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class GYNOID_API UWeaponComponent : public UActorComponent
 {
@@ -18,19 +21,19 @@ protected:
 	virtual void BeginPlay() override;
 	
 	/** The Character Ref must implement WeaponableInterface */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta=(MustImplement="WeaponableInterface"), Category = "Info")
-    AActor* WeaponOwner;
-
-	/*UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Info")
-	TScriptInterface<IWeaponableInterface> WeaponableOwner;*/
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta=(MustImplement="WeaponableInterface"), Category=Info)
+    ACharacter* WeaponOwner;
 	
 	/** Weapons array. It's used to hold a reference to all available weapons */
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Info")
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category=Info)
     TArray<AWeapon*> WeaponList;
 
 	/** The Character will start play with the list of weapons */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Config")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Config)
     TArray<TSubclassOf<AWeapon>> StartWeaponClasses;
+
+	UPROPERTY(BlueprintReadOnly)
+	AWeapon* EquippedWeapon;
 
 	/**
 	* Returns a reference of the desired weapon 
@@ -60,4 +63,15 @@ public:
 	/** Makes the character to equip the desired weapon if possible */
 	UFUNCTION(BlueprintCallable)
 	void EquipWeapon(EWeaponType WeaponType);
+
+	/** Un Equip any equipped weapon */
+	UFUNCTION(BlueprintCallable)
+	void UnEquipWeapon();
+
+	UFUNCTION(BlueprintCallable)
+	void OnStartFire();
+
+	UFUNCTION(BlueprintCallable)
+	void OnStopFire();
+	
 };
