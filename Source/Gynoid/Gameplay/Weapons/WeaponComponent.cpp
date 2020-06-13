@@ -23,8 +23,10 @@ void UWeaponComponent::BeginPlay()
 	Super::BeginPlay();
 
 	WeaponOwner = Cast<ACharacter>(GetOwner());
+	check(WeaponOwner)
 
-	SpawnStartWeapons();
+	// SpawnDefaultInventory at the next tick
+	GetWorld()->GetTimerManager().SetTimerForNextTick(this, &UWeaponComponent::SpawnDefaultInventory);
 }
 
 // Called every frame
@@ -36,120 +38,147 @@ void UWeaponComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActo
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-// Returns a reference of the desired weapon
+// Weapon usage
 //----------------------------------------------------------------------------------------------------------------------
-AWeapon* UWeaponComponent::GetWeaponByType(EWeaponType WeaponType) const
+#pragma region Weapon
+
+void UWeaponComponent::StartWeaponFire()
 {
-	for (auto It = WeaponList.CreateConstIterator(); It; ++It)
+	if (!bWantsToFire)
 	{
-		if ((*It) && (*It)->GetType() == WeaponType)
+		bWantsToFire = true;
+		if (CurrentWeapon)
 		{
-			return *It;
+			CurrentWeapon->StartFire();
+		}
+	}
+}
+
+void UWeaponComponent::StopWeaponFire()
+{
+	if (bWantsToFire)
+	{
+		bWantsToFire = false;
+		if (CurrentWeapon)
+		{
+			CurrentWeapon->StopFire();
+		}
+	}
+}
+
+#pragma endregion Weapon
+
+//----------------------------------------------------------------------------------------------------------------------
+// Inventory
+//----------------------------------------------------------------------------------------------------------------------
+#pragma region Inventory
+
+void UWeaponComponent::AddWeapon(AWeapon* Weapon)
+{
+	Weapon->OnEnterInventory(WeaponOwner);
+	Inventory.AddUnique(Weapon);
+}
+
+void UWeaponComponent::RemoveWeapon(AWeapon* Weapon)
+{
+	Weapon->OnLeaveInventory();
+	Inventory.RemoveSingle(Weapon);
+}
+
+AWeapon* UWeaponComponent::GetWeapon() const
+{
+	return CurrentWeapon;
+}
+
+AWeapon* UWeaponComponent::FindWeapon(const TSubclassOf<AWeapon> WeaponClass)
+{
+	for (int32 i = 0; i < Inventory.Num(); i++)
+	{
+		if (Inventory[i] && Inventory[i]->IsA(WeaponClass))
+		{
+			return Inventory[i];
 		}
 	}
 
-	// didn't find a valid reference
 	return nullptr;
 }
 
-//----------------------------------------------------------------------------------------------------------------------
-// Spawn a desired Weapon
-//----------------------------------------------------------------------------------------------------------------------
-void UWeaponComponent::SpawnWeapon(TSubclassOf<AWeapon> WeaponClass)
+void UWeaponComponent::EquipWeapon(AWeapon* Weapon)
 {
-	FActorSpawnParameters ActorSpawnParams;
-	ActorSpawnParams.Owner = WeaponOwner;
-
-	UWorld* World = GetWorld();
-	if (!World)
+	if (Weapon)
 	{
-		UE_LOG(LogTemp, Error, TEXT("The World is not avalable!"));
-		return;
-	}
-
-	if (!WeaponOwner->GetClass()->ImplementsInterface(UWeaponableInterface::StaticClass()))
-	{
-		UE_LOG(LogTemp, Error, TEXT("The Character Must implement WeaponableInterface interface for the Weapon System."));
-		return;
-	}
-
-	// spawn weapon
-	AWeapon* WeaponRef = World->SpawnActor<AWeapon>(WeaponClass->GetDefaultObject()->GetClass(), GetOwner()->GetTransform(), ActorSpawnParams);
-	WeaponRef->SetActorHiddenInGame(true);
-
-	const FAttachmentTransformRules AttachmentTransformRules(EAttachmentRule::SnapToTarget, false);
-
-	USkeletalMeshComponent* OwnerMesh = IWeaponableInterface::Execute_GetMesh(WeaponOwner);
-	if (!OwnerMesh)
-	{
-		UE_LOG(LogTemp, Error, TEXT("The GetMesh method is not implemented or returns empty result for WeaponableInteface!"));
-		return;
-	}
-	
-	WeaponRef->AttachToComponent(OwnerMesh, AttachmentTransformRules, WeaponRef->GetCharacterSocket());
-	WeaponRef->SetActorRelativeTransform(WeaponRef->GetAttachRelativeTransform());
-
-	WeaponList.Add(WeaponRef);
-
-	UE_LOG(LogTemp, Warning, TEXT("The Weapon Successfully Spawned"));
-}
-
-//----------------------------------------------------------------------------------------------------------------------
-// Spawn all weapons from StartWeaponClasses
-//----------------------------------------------------------------------------------------------------------------------
-void UWeaponComponent::SpawnStartWeapons()
-{
-	for (auto It = StartWeaponClasses.CreateConstIterator(); It; ++It)
-	{
-		SpawnWeapon(*It);
-	}
-
-	// Equip riffle by default
-	EquipWeapon(EWeaponType::EWT_Rifle);
-}
-
-//----------------------------------------------------------------------------------------------------------------------
-// Equip weapon for the character
-//----------------------------------------------------------------------------------------------------------------------
-void UWeaponComponent::EquipWeapon(EWeaponType WeaponType)
-{
-	if (EquippedWeapon)
-	{
-		UnEquipWeapon();
-	}
-	
-	AWeapon* WeaponToEquip = GetWeaponByType(WeaponType);
-	if (WeaponToEquip)
-	{
-		WeaponToEquip->SetActorHiddenInGame(false);
-		WeaponToEquip->SetOwningPawn(WeaponOwner);
-		EquippedWeapon = WeaponToEquip;
-
-		UE_LOG(LogTemp, Warning, TEXT("The Weapon Successfully Equipped"));
+		SetCurrentWeapon(Weapon, CurrentWeapon);
 	}
 }
 
-void UWeaponComponent::UnEquipWeapon()
+void UWeaponComponent::SpawnDefaultInventory()
 {
-	EquippedWeapon->SetActorHiddenInGame(true);
-	EquippedWeapon = nullptr;
+	const int32 NumWeaponClasses = DefaultInventoryClasses.Num();
+	for (int32 i = 0; i < NumWeaponClasses; i++)
+	{
+		if (DefaultInventoryClasses[i])
+		{
+			FActorSpawnParameters SpawnInfo;
+			SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+			AWeapon* NewWeapon = GetWorld()->SpawnActor<AWeapon>(DefaultInventoryClasses[i], SpawnInfo);
+			AddWeapon(NewWeapon);
+		}
+	}
+
+	// equip first weapon in inventory
+	if (Inventory.Num() > 0)
+	{
+		EquipWeapon(Inventory[0]);
+	}
 }
 
-void UWeaponComponent::OnStartFire()
+void UWeaponComponent::SetCurrentWeapon(AWeapon* NewWeapon, AWeapon* LastWeapon)
 {
-	if (!EquippedWeapon)
-		return;
+	AWeapon* LocalLastWeapon = nullptr;
 
-	EquippedWeapon->StartFire();
+	if (LastWeapon != nullptr)
+	{
+		LocalLastWeapon = LastWeapon;
+	}
+	else if (NewWeapon != CurrentWeapon)
+	{
+		LocalLastWeapon = CurrentWeapon;
+	}
+
+	// unequip previous
+	if (LocalLastWeapon)
+	{
+		LocalLastWeapon->OnUnEquip();
+	}
+
+	CurrentWeapon = NewWeapon;
+
+	// equip new one
+	if (NewWeapon)
+	{
+		NewWeapon->SetWeaponOwner(WeaponOwner);	// Make sure weapon's MyPawn is pointing back to us. During replication, we can't guarantee APawn::CurrentWeapon will rep after AWeapon::MyPawn!
+
+		NewWeapon->OnEquip(LastWeapon);
+	}
 }
 
-void UWeaponComponent::OnStopFire()
+void UWeaponComponent::DestroyInventory()
 {
-	if (!EquippedWeapon)
-		return;
-
-	EquippedWeapon->StopFire();
+	// remove all weapons from inventory and destroy them
+	for (int32 i = Inventory.Num() - 1; i >= 0; i--)
+	{
+		AWeapon* Weapon = Inventory[i];
+		if (Weapon)
+		{
+			RemoveWeapon(Weapon);
+			Weapon->Destroy();
+		}
+	}
 }
 
+FName UWeaponComponent::GetWeaponAttachPoint() const
+{
+	return WeaponAttachPoint;
+}
 
 

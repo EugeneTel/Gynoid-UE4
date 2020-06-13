@@ -20,58 +20,99 @@ protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
 	
-	/** The Character Ref must implement WeaponableInterface */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta=(MustImplement="WeaponableInterface"), Category=Info)
-    ACharacter* WeaponOwner;
-	
-	/** Weapons array. It's used to hold a reference to all available weapons */
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category=Info)
-    TArray<AWeapon*> WeaponList;
-
-	/** The Character will start play with the list of weapons */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Config)
-    TArray<TSubclassOf<AWeapon>> StartWeaponClasses;
-
-	UPROPERTY(BlueprintReadOnly)
-	AWeapon* EquippedWeapon;
-
-	/**
-	* Returns a reference of the desired weapon 
-	*/
-	UFUNCTION(BlueprintCallable)
-    AWeapon* GetWeaponByType(EWeaponType WeaponType) const;
-
-	/**
-	* Spawn a desired weapon
-	*/
-	UFUNCTION(BlueprintCallable)
-    void SpawnWeapon(TSubclassOf<AWeapon> WeaponClass);
-
-	/**
-	 * Spawn all weapons from StartWeaponClasses
-	 */
-	UFUNCTION(BlueprintCallable)
-	void SpawnStartWeapons();
-	
 public:
 	// Sets default values for this component's properties
 	UWeaponComponent();
 	
 	// Called every frame
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
+	
+//----------------------------------------------------------------------------------------------------------------------
+// General
+//----------------------------------------------------------------------------------------------------------------------
+protected:
+	
+	/** The Character Ref must implement WeaponableInterface */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta=(MustImplement="WeaponableInterface"), Category=Info)
+    ACharacter* WeaponOwner;
 
-	/** Makes the character to equip the desired weapon if possible */
-	UFUNCTION(BlueprintCallable)
-	void EquipWeapon(EWeaponType WeaponType);
+//----------------------------------------------------------------------------------------------------------------------
+// Weapon Usage
+//----------------------------------------------------------------------------------------------------------------------
+#pragma region Weapon
+protected:
 
-	/** Un Equip any equipped weapon */
-	UFUNCTION(BlueprintCallable)
-	void UnEquipWeapon();
+	/** current firing state */
+	bool bWantsToFire;
+	
+public:
 
+	/** starts weapon fire */
 	UFUNCTION(BlueprintCallable)
-	void OnStartFire();
+    void StartWeaponFire();
 
+	/** stops weapon fire */
 	UFUNCTION(BlueprintCallable)
-	void OnStopFire();
+    void StopWeaponFire();
+	
+#pragma endregion Weapon
+	
+//----------------------------------------------------------------------------------------------------------------------
+// Inventory
+//----------------------------------------------------------------------------------------------------------------------
+#pragma region Inventory
+protected:
+
+	/** socket or bone name for attaching weapon mesh */
+	UPROPERTY(EditDefaultsOnly, Category = Inventory)
+	FName WeaponAttachPoint;
+	
+	/** Weapons array. It's used to hold a reference to all available weapons */
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Category=Inventory)
+	TArray<AWeapon*> Inventory;
+
+	/** The Character will start play with the list of weapons */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Inventory)
+    TArray<TSubclassOf<AWeapon>> DefaultInventoryClasses;
+
+	/** Currently equipped weapon */
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category=Inventory)
+    AWeapon* CurrentWeapon;
+
+public:
+
+	/** add weapon to inventory */
+	UFUNCTION(BlueprintCallable)
+	void AddWeapon(AWeapon* Weapon);
+
+	/** remove weapon from inventory */
+	UFUNCTION(BlueprintCallable)
+	void RemoveWeapon(AWeapon* Weapon);
+
+	/** get currently equipped weapon */
+	UFUNCTION(BlueprintCallable)
+	AWeapon* GetWeapon() const;
+
+	/** Find in inventory */
+	UFUNCTION(BlueprintCallable)
+	AWeapon* FindWeapon(TSubclassOf<AWeapon> WeaponClass);
+	
+	/** equips weapon from inventory */
+	UFUNCTION(BlueprintCallable)
+	void EquipWeapon(AWeapon* Weapon);
+
+	/** spawns default inventory */
+	void SpawnDefaultInventory();
+
+	/** updates current weapon */
+	void SetCurrentWeapon(AWeapon* NewWeapon, class AWeapon* LastWeapon = nullptr);
+
+	/** remove all weapons from inventory and destroy them */
+	void DestroyInventory();
+
+	/** get weapon attach point */
+	FName GetWeaponAttachPoint() const;
+	
+#pragma endregion Inventory
 	
 };
