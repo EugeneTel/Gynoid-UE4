@@ -85,6 +85,14 @@ void UWeaponComponent::RemoveWeapon(AWeapon* Weapon)
 	Inventory.RemoveSingle(Weapon);
 }
 
+void UWeaponComponent::ReloadWeapon() const
+{
+	if (CurrentWeapon)
+	{
+		CurrentWeapon->StartReload();
+	}
+}
+
 AWeapon* UWeaponComponent::GetWeapon() const
 {
 	return CurrentWeapon;

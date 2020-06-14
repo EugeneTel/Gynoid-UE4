@@ -146,10 +146,13 @@ public:
 	// Sets default values for this actor's properties
 	AWeapon();
 
+	/** perform initial setup */
+	virtual void PostInitializeComponents() override;
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
-public:
+public:	
 
 //----------------------------------------------------------------------------------------------------------------------
 // General
@@ -188,6 +191,10 @@ protected:
 public:
     /** set the weapon's owning pawn */
     void SetWeaponOwner(ACharacter* NewOwner);
+
+	/** Get current weapon's state */
+	UFUNCTION(BlueprintCallable)
+	EWeaponState GetCurrentState() const;
 
 #pragma endregion General
 
@@ -370,6 +377,9 @@ public:
 #pragma region Reload
 protected:
 	
+	/** is reloading? */
+	bool bPendingReload;
+	
 	/** reload sound */
     UPROPERTY(EditDefaultsOnly, Category=Sound)
     USoundCue* ReloadSound;
@@ -378,11 +388,12 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category=Animation)
     UAnimMontage* ReloadAnim;
 
-	/** Handle for efficient management of StopReload timer */
-	FTimerHandle TimerHandle_StopReload;
-
-	/** Handle for efficient management of ReloadWeapon timer */
+	/** Handle for efficient management of StartReload timer */
 	FTimerHandle TimerHandle_ReloadWeapon;
+
+	/** interrupt weapon reload */
+	UFUNCTION(BlueprintCallable)
+    void StopReload();
 
 public:
 	
@@ -393,14 +404,6 @@ public:
 	/** start weapon reload */
 	UFUNCTION(BlueprintCallable)
     void StartReload();
-
-	/** interrupt weapon reload */
-	UFUNCTION(BlueprintCallable)
-    void StopReload();
-
-	/** performs actual reload */
-	UFUNCTION(BlueprintCallable)
-    void ReloadWeapon();
 
 #pragma endregion Reload
 	

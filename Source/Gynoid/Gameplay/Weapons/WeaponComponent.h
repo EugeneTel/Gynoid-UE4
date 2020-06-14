@@ -89,6 +89,10 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void RemoveWeapon(AWeapon* Weapon);
 
+	/** reload the current weapon */
+	UFUNCTION(BlueprintCallable)
+	void ReloadWeapon() const;
+
 	/** get currently equipped weapon */
 	UFUNCTION(BlueprintCallable)
 	AWeapon* GetWeapon() const;

@@ -18,9 +18,36 @@ AWeapon::AWeapon()
     MeshComp->VisibilityBasedAnimTickOption = EVisibilityBasedAnimTickOption::OnlyTickPoseWhenRendered;
     MeshComp->bReceivesDecals = false;
 
+    // TODO: refactor AttachOffset
     WeaponConfig.AttachOffset = FTransform(FRotator(140.f, 25.f, 338.f), FVector(0.f, 3.f, 6.f));
 
-    CurrentAmmoInClip = WeaponConfig.AmmoPerClip;
+    // Setup Defaults
+    bLoopedMuzzleFX = false;
+    bLoopedFireAnim = false;
+    bPlayingFireAnim = false;
+    bEquipped = false;
+    bWantsToFire = false;
+    bPendingReload = false;
+    
+    CurrentState = EWeaponState::EWS_Idle;
+    CurrentAmmo = 0;
+    CurrentAmmoInClip = 0;
+    LastFireTime = 0.0f;
+    
+    PrimaryActorTick.bCanEverTick = true;
+    PrimaryActorTick.TickGroup = TG_PrePhysics;
+}
+
+void AWeapon::PostInitializeComponents()
+{
+    Super::PostInitializeComponents();
+
+    // Setup default Ammo from config
+    if (WeaponConfig.InitialClips > 0)
+    {
+        CurrentAmmoInClip = WeaponConfig.AmmoPerClip;
+        CurrentAmmo = WeaponConfig.AmmoPerClip * WeaponConfig.InitialClips;
+    }
 }
 
 void AWeapon::BeginPlay()
@@ -46,6 +73,11 @@ void AWeapon::SetWeaponOwner(ACharacter* NewOwner)
     OwnerComp = WeaponComponents.Pop();
 }
 
+EWeaponState AWeapon::GetCurrentState() const
+{
+    return CurrentState;
+}
+
 //----------------------------------------------------------------------------------------------------------------------
 // Firing
 //----------------------------------------------------------------------------------------------------------------------
@@ -60,7 +92,7 @@ void AWeapon::FireWeapon()
     const float ProjectileAdjustRange = 10000.0f;
     const FVector StartTrace = GetCameraDamageStartLocation(ShootDir);
     const FVector EndTrace = StartTrace + ShootDir * ProjectileAdjustRange;
-    
+    // ------------- WHY MANY TIMES? ---------------
     FHitResult Impact = WeaponTrace(StartTrace, EndTrace);
 
     // and adjust directions to hit that actor
@@ -201,9 +233,18 @@ void AWeapon::DetermineWeaponState()
 
     if (bEquipped)
     {
-        // TODO: Implement reloading state
-
-        if ((bWantsToFire == true) && (CanFire() == true))
+        // Check reloading state
+        if (bPendingReload)
+        {
+            if (CanReload() == false)
+            {
+                NewState = CurrentState;
+            } else
+            {
+                NewState = EWeaponState::EWS_Reloading;
+            }
+        } // Check Fire State
+        else if ((bWantsToFire == true) && (CanFire() == true))
         {
             NewState = EWeaponState::EWS_Firing;
         }
@@ -239,10 +280,9 @@ void AWeapon::StopSimulatingWeaponFire()
 bool AWeapon::CanFire() const
 {
     // TODO: Implement checking the Owner can fire (is Alive)
-    // TODO: Implement checking for pending reload
     const bool bStateOKToFire = ((CurrentState == EWeaponState::EWS_Idle) || (CurrentState == EWeaponState::EWS_Firing));
 
-    return bStateOKToFire;
+    return (bStateOKToFire == true) && (bPendingReload == false);
 }
 
 void AWeapon::StartFire()
@@ -346,14 +386,50 @@ bool AWeapon::CanReload() const
 
 void AWeapon::StartReload()
 {
+    UE_LOG(LogTemp, Warning, TEXT("AWeapon::StartReload"));
+    if (!CanReload())
+        return;
+
+    bPendingReload = true;
+
+    DetermineWeaponState();
+
+    // Play animation
+    float AnimDuration = WeaponConfig.NoAnimReloadDuration;
+    if (ReloadAnim)
+    {
+        AnimDuration = PlayWeaponAnimation(ReloadAnim);
+    }
+
+    if (ReloadSound)
+    {
+        PlayWeaponSound(ReloadSound);
+    }
+
+    GetWorldTimerManager().SetTimer(TimerHandle_ReloadWeapon, this, &AWeapon::StopReload, AnimDuration, false);
 }
 
 void AWeapon::StopReload()
 {
-}
+    if (CurrentState == EWeaponState::EWS_Reloading)
+    {
+        bPendingReload = false;
+        DetermineWeaponState();
 
-void AWeapon::ReloadWeapon()
-{
+        if (ReloadAnim)
+        {
+            StopWeaponAnimation(ReloadAnim);
+        }
+
+        // calculate ammo
+        const int32 ClipDelta = FMath::Min(WeaponConfig.AmmoPerClip - CurrentAmmoInClip, CurrentAmmo - CurrentAmmoInClip);
+        if (ClipDelta > 0)
+        {
+            CurrentAmmoInClip += ClipDelta;
+        }
+
+        UE_LOG(LogTemp, Warning, TEXT("Reload finished"));
+    }
 }
 
 #pragma endregion Reload
@@ -560,3 +636,4 @@ FHitResult AWeapon::WeaponTrace(const FVector& StartTrace, const FVector& EndTra
 
     return Hit;
 }
+          
