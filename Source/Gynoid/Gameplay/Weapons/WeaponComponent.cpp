@@ -13,7 +13,8 @@ UWeaponComponent::UWeaponComponent()
 	// off to improve performance if you don't need them.
 	PrimaryComponentTick.bCanEverTick = true;
 
-	// ...
+	// Setup Defaults
+	WeaponAttachPoint = FName("SKT_Hand_R");
 }
 
 
@@ -116,6 +117,28 @@ void UWeaponComponent::EquipWeapon(AWeapon* Weapon)
 	if (Weapon)
 	{
 		SetCurrentWeapon(Weapon, CurrentWeapon);
+	}
+}
+
+void UWeaponComponent::NextWeapon()
+{
+	UE_LOG(LogTemp, Warning, TEXT("UWeaponComponent::NextWeapon"));
+	if (Inventory.Num() > 1 && (CurrentWeapon == nullptr || CurrentWeapon->GetCurrentState() != EWeaponState::EWS_Equipping))
+	{
+		const int32 CurrentWeaponIdx = Inventory.IndexOfByKey(CurrentWeapon);
+		AWeapon* NextWeapon = Inventory[(CurrentWeaponIdx + 1) % Inventory.Num()];
+		EquipWeapon(NextWeapon);
+	}
+}
+
+void UWeaponComponent::PrevWeapon()
+{
+	UE_LOG(LogTemp, Warning, TEXT("UWeaponComponent::PrevWeapon"));
+	if (Inventory.Num() > 1 && (CurrentWeapon == nullptr || CurrentWeapon->GetCurrentState() != EWeaponState::EWS_Equipping))
+	{
+		const int32 CurrentWeaponIdx = Inventory.IndexOfByKey(CurrentWeapon);
+		AWeapon* PrevWeapon = Inventory[(CurrentWeaponIdx - 1 + Inventory.Num()) % Inventory.Num()];
+		EquipWeapon(PrevWeapon);
 	}
 }
 

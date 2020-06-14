@@ -465,15 +465,23 @@ void AWeapon::OnEquip(const AWeapon* LastWeapon)
     AttachMeshToPawn();
     DetermineWeaponState();
 
-    if (CurrentAmmoInClip <= 0 && CanReload())
+    if (EquipSound)
     {
-        StartReload();
+        PlayWeaponSound(EquipSound);
     }
+
+    // TODO: Implement with animation
+    OnEquipFinished();
 }
 
 void AWeapon::OnEquipFinished()
 {
     // TODO: Implement with animation
+
+    if (CurrentAmmoInClip <= 0 && CanReload())
+    {
+        StartReload();
+    }
 }
 
 void AWeapon::OnUnEquip()

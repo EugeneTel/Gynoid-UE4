@@ -105,6 +105,14 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void EquipWeapon(AWeapon* Weapon);
 
+	/** equips the next weapon from inventory */
+	UFUNCTION(BlueprintCallable)
+	void NextWeapon();
+
+	/** equips the previous weapon from inventory */
+	UFUNCTION(BlueprintCallable)
+	void PrevWeapon();
+
 	/** spawns default inventory */
 	void SpawnDefaultInventory();
 
