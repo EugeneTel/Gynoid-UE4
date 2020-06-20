@@ -11,6 +11,8 @@
 #include "WeaponComponent.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Projectiles/Projectile.h"
+#include "Particles/ParticleSystemComponent.h"
+
 
 FOnWeaponUpdateAmmo AWeapon::NotifyUpdateAmmo;
 
@@ -78,6 +80,11 @@ void AWeapon::SetWeaponOwner(ACharacter* NewOwner)
 EWeaponState AWeapon::GetCurrentState() const
 {
     return CurrentState;
+}
+
+EWeaponType AWeapon::GetType() const
+{
+    return Type;
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -178,6 +185,8 @@ void AWeapon::OnBurstFinished()
 
     GetWorldTimerManager().ClearTimer(TimerHandle_HandleFiring);
     bRefiring = false;
+
+    StopSimulatingWeaponFire();
 }
 
 void AWeapon::SetWeaponState(EWeaponState NewState)
@@ -231,16 +240,28 @@ void AWeapon::SimulateWeaponFire()
         return;
 
     PlayWeaponSound(FireSound);
+
+    // Play Muzzle FX
+    if (MuzzleFX)
+    {
+        MuzzleParticleComp = UGameplayStatics::SpawnEmitterAttached(MuzzleFX, MeshComp, MuzzleSocketName);
+    }
+    
     // TODO: Implement looping sound
     
-    // TODO: Implement Muzzle FX
     // TODO: Implement Animation
     // TODO: Implement Camera Shake   
 }
 
 void AWeapon::StopSimulatingWeaponFire()
 {
-    // TODO: Implement Stop Muzzle FX
+    // Stop Muzzle FX
+    if (IsValid(MuzzleParticleComp))
+    {
+        MuzzleParticleComp->DeactivateSystem();
+        MuzzleParticleComp = nullptr;
+    }
+    
     // TODO: Implement Stop Animation
     // TODO: Implement Stop sound
 
@@ -280,17 +301,35 @@ void AWeapon::StopFire()
 //----------------------------------------------------------------------------------------------------------------------
 #pragma region Ammo
 
-void AWeapon::GiveAmmo(int AddAmount)
+bool AWeapon::GiveAmmo(int AddAmount, bool bNotify)
 {
+    // calculate ammo amount and try to add it
     const int32 MissingAmmo = FMath::Max(0, WeaponConfig.MaxAmmo - CurrentAmmo);
+    if (MissingAmmo <= 0)
+        return false;
+    
     AddAmount = FMath::Min(AddAmount, MissingAmmo);
     CurrentAmmo += AddAmount;
+
+    // play the pickup ammo sound
+    if (PickupAmmoSound)
+    {
+        PlayWeaponSound(PickupAmmoSound);
+    }
+
+    if (bNotify)
+    {
+        // Notify subscribers about updating ammo
+        NotifyUpdateAmmo.Broadcast(CurrentAmmoInClip, CurrentAmmo);
+    }
 
     // start reload if clip was empty
     if (GetCurrentAmmoInClip() <= 0 && CanReload() && OwnerComp && (OwnerComp->GetWeapon() == this))
     {
         StartReload();
     }
+    
+    return true;
 }
 
 void AWeapon::UseAmmo()
@@ -596,12 +635,12 @@ FVector AWeapon::GetCameraDamageStartLocation(const FVector& AimDir) const
 
 FVector AWeapon::GetMuzzleLocation() const
 {
-    return MeshComp->GetSocketLocation(MuzzleAttachPoint);
+    return MeshComp->GetSocketLocation(MuzzleSocketName);
 }
 
 FVector AWeapon::GetMuzzleDirection() const
 {
-    return MeshComp->GetSocketRotation(MuzzleAttachPoint).Vector();
+    return MeshComp->GetSocketRotation(MuzzleSocketName).Vector();
 }
 
 FHitResult AWeapon::WeaponTrace(const FVector& StartTrace, const FVector& EndTrace, const bool bDebug) const

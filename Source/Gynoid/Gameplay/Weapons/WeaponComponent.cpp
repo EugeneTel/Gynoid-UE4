@@ -112,6 +112,19 @@ AWeapon* UWeaponComponent::FindWeapon(const TSubclassOf<AWeapon> WeaponClass)
 	return nullptr;
 }
 
+AWeapon* UWeaponComponent::FindWeapon(const EWeaponType WeaponType)
+{
+	for (int32 i = 0; i < Inventory.Num(); i++)
+	{
+		if (Inventory[i] && Inventory[i]->GetType() == WeaponType)
+		{
+			return Inventory[i];
+		}
+	}
+
+	return nullptr;
+}
+
 void UWeaponComponent::EquipWeapon(AWeapon* Weapon)
 {
 	if (Weapon)
@@ -210,6 +223,21 @@ void UWeaponComponent::DestroyInventory()
 FName UWeaponComponent::GetWeaponAttachPoint() const
 {
 	return WeaponAttachPoint;
+}
+
+void UWeaponComponent::PickupAmmo(AAmmoPickup* AmmoPickup)
+{
+	UE_LOG(LogTemp, Warning, TEXT("UWeaponComponent::PickupAmmo"));
+
+	AWeapon* SuitableWeapon = FindWeapon(AmmoPickup->GetWeaponType());
+	if (!SuitableWeapon)
+		return;
+
+	const bool bNotify = SuitableWeapon == CurrentWeapon;
+	if (SuitableWeapon->GiveAmmo(AmmoPickup->GetAmount(), bNotify))
+	{	
+		AmmoPickup->Destroy();
+	}
 }
 
 

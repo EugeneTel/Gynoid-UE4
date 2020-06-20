@@ -201,6 +201,10 @@ public:
 	UFUNCTION(BlueprintCallable)
 	EWeaponState GetCurrentState() const;
 
+	/** Get current weapon's type */
+	UFUNCTION(BlueprintCallable)
+	EWeaponType GetType() const;
+
 #pragma endregion General
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -226,7 +230,7 @@ protected:
 
 	/** name of bone/socket for muzzle in weapon mesh */
 	UPROPERTY(EditDefaultsOnly, Category=Effects)
-    FName MuzzleAttachPoint;
+    FName MuzzleSocketName;
 
 	/** FX for muzzle flash */
 	UPROPERTY(EditDefaultsOnly, Category=Effects)
@@ -341,10 +345,14 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category=Sound)
     USoundCue* OutOfAmmoSound;
 
+	/** pickup ammo sound */
+	UPROPERTY(EditDefaultsOnly, Category=Sound)
+	USoundCue* PickupAmmoSound;
+
 public:
 	/** add ammo */
 	UFUNCTION(BlueprintCallable)
-	void GiveAmmo(int AddAmount);
+	bool GiveAmmo(int AddAmount, bool bNotify = false);
 
 	/** consume a bullet */
 	UFUNCTION(BlueprintCallable)

@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Camera/CameraComponent.h"
+#include "Gynoid/Gameplay/Weapons/Ammo/AmmoPickup.h"
 #include "UObject/Interface.h"
 #include "WeaponableInterface.generated.h"
 
@@ -35,4 +36,10 @@ public:
 	*/
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent)
     UCameraComponent* GetCamera();
+
+	/**
+	 * Returns the WeaponComponent of the Character
+	 */
+	UFUNCTION(BlueprintCallable, BlueprintNativeEvent)
+	UWeaponComponent* GetWeaponComponent();
 };

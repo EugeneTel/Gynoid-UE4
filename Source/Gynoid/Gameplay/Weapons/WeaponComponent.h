@@ -7,6 +7,7 @@
 
 enum class EWeaponType : uint8;
 class AWeapon;
+class AAmmoPickup;
 
 /**
  * Weapon Component
@@ -97,9 +98,12 @@ public:
 	UFUNCTION(BlueprintCallable)
 	AWeapon* GetWeapon() const;
 
-	/** Find in inventory */
-	UFUNCTION(BlueprintCallable)
+	/** Find in inventory by weapon class */
 	AWeapon* FindWeapon(TSubclassOf<AWeapon> WeaponClass);
+
+	/** Find in inventory by weapon type*/
+	UFUNCTION(BlueprintCallable)
+    AWeapon* FindWeapon(EWeaponType WeaponType);
 	
 	/** equips weapon from inventory */
 	UFUNCTION(BlueprintCallable)
@@ -124,6 +128,10 @@ public:
 
 	/** get weapon attach point */
 	FName GetWeaponAttachPoint() const;
+
+	/** pickup the ammo */
+	UFUNCTION(BlueprintCallable)
+    void PickupAmmo(AAmmoPickup* AmmoPickup);
 	
 #pragma endregion Inventory
 	
