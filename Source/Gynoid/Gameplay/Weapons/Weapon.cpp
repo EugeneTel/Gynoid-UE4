@@ -12,6 +12,8 @@
 #include "Kismet/KismetMathLibrary.h"
 #include "Projectiles/Projectile.h"
 
+FOnWeaponUpdateAmmo AWeapon::NotifyUpdateAmmo;
+
 AWeapon::AWeapon()
 {
     MeshComp = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("MeshComponent"));
@@ -327,6 +329,9 @@ void AWeapon::UseAmmo()
 {
     CurrentAmmoInClip--;
     CurrentAmmo--;
+
+    // Notify subscribers about updating ammo
+    NotifyUpdateAmmo.Broadcast(CurrentAmmoInClip, CurrentAmmo);
 }
 
 bool AWeapon::HasAmmo() const
@@ -428,7 +433,8 @@ void AWeapon::StopReload()
             CurrentAmmoInClip += ClipDelta;
         }
 
-        UE_LOG(LogTemp, Warning, TEXT("Reload finished"));
+        // Notify subscribers about updating ammo
+        NotifyUpdateAmmo.Broadcast(CurrentAmmoInClip, CurrentAmmo);
     }
 }
 
@@ -482,6 +488,9 @@ void AWeapon::OnEquipFinished()
     {
         StartReload();
     }
+
+    // Notify subscribers about updating ammo
+    NotifyUpdateAmmo.Broadcast(CurrentAmmoInClip, CurrentAmmo);
 }
 
 void AWeapon::OnUnEquip()

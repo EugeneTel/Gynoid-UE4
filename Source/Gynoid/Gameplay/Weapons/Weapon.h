@@ -14,6 +14,8 @@ class UDamageType;
 class UAnimMontage;
 class UWeaponComponent;
 
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnWeaponUpdateAmmo, int32&, int32&);
+
 /**
  * Weapon Types
  */
@@ -148,6 +150,9 @@ public:
 
 	/** perform initial setup */
 	virtual void PostInitializeComponents() override;
+	
+	/** Global notification when a character updates ammo. Needed for HUD */
+	static FOnWeaponUpdateAmmo NotifyUpdateAmmo;
 
 protected:
 	// Called when the game starts or when spawned
