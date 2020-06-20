@@ -94,49 +94,17 @@ void AWeapon::FireWeapon()
     const float ProjectileAdjustRange = 10000.0f;
     const FVector StartTrace = GetCameraDamageStartLocation(ShootDir);
     const FVector EndTrace = StartTrace + ShootDir * ProjectileAdjustRange;
-    // ------------- WHY MANY TIMES? ---------------
     FHitResult Impact = WeaponTrace(StartTrace, EndTrace);
+    FRotator ShootRotation;
 
     // and adjust directions to hit that actor
     if (Impact.bBlockingHit)
     {
-        const FVector AdjustedDir = (Impact.ImpactPoint - Origin).GetSafeNormal();
-        bool bWeaponPenetration = false;
-
-        const float DirectionDot = FVector::DotProduct(AdjustedDir, ShootDir);
-        if (DirectionDot < 0.0f)
-        {
-            // shooting backwards = weapon is penetrating
-            bWeaponPenetration = true;
-        }
-        else if (DirectionDot < 0.5f)
-        {
-            // check for weapon penetration if angle difference is big enough
-            // raycast along weapon mesh to check if there's blocking hit
-
-            FVector MuzzleStartTrace = Origin - GetMuzzleDirection() * 150.0f;
-            FVector MuzzleEndTrace = Origin;
-            FHitResult MuzzleImpact = WeaponTrace(MuzzleStartTrace, MuzzleEndTrace);
-
-            if (MuzzleImpact.bBlockingHit)
-            {
-                bWeaponPenetration = true;
-            }
-        }
-
-        if (bWeaponPenetration)
-        {
-            // spawn at crosshair position
-            Origin = Impact.ImpactPoint - ShootDir * 10.0f;
-        }
-        else
-        {
-            // adjust direction to hit
-
-        }
+        ShootRotation = UKismetMathLibrary::FindLookAtRotation(Origin, Impact.ImpactPoint);
+    } else
+    {
+        ShootRotation = UKismetMathLibrary::FindLookAtRotation(Origin, EndTrace);
     }
-
-    FRotator ShootRotation = UKismetMathLibrary::FindLookAtRotation(Impact.ImpactPoint, EndTrace);
 
     FireProjectile(Origin, ShootRotation);
 }
@@ -649,6 +617,11 @@ FHitResult AWeapon::WeaponTrace(const FVector& StartTrace, const FVector& EndTra
     if (bDebug)
     {
         DrawDebugLine(GetWorld(), StartTrace, EndTrace, FColor::Green, false, 5, 0.f, 1.f);
+
+        if (Hit.bBlockingHit)
+        {
+            DrawDebugSphere(GetWorld(), Hit.ImpactPoint, 12.f, 8, FColor::Green,false,5.f,0,1.f);
+        }
     }
 
     return Hit;

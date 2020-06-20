@@ -28,10 +28,23 @@ private:
 
 protected:
 
+	/** Crosshair asset pointer */
+	UTexture2D* CrosshairTexture;
+
 	void PostInitializeComponents() override;
 
 	/** Create Custom Widgets */
 	void CreateCustomWidgets();
 
+	/** Draws weapon crosshair. */
+	void DrawCrosshair();
+
 public:
+
+	/** Main HUD update loop. */
+	void DrawHUD() override;
+
+	AGynoidHUD();
+
+	
 };
