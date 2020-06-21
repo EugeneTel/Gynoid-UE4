@@ -4,6 +4,8 @@
 
 #include "CoreMinimal.h"
 #include "Gynoid/Gameplay/Weapons/Weapon.h"
+#include "UObject/ObjectMacros.h"
+
 #include "Projectile.generated.h"
 
 class USphereComponent;
@@ -49,6 +51,10 @@ protected:
 
 	/** Projectile Data */
 	FProjectileWeaponData ProjectileData;
+
+	/** Impact Effect */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category=Config)
+	UParticleSystem* ImpactFX;
 
 	/**
 	 * Called when the box component overlapped

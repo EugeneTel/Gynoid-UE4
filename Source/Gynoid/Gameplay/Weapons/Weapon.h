@@ -236,6 +236,10 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category=Effects)
     UParticleSystem* MuzzleFX;
 
+	/** Scale for MuzzleFX */
+	UPROPERTY(EditDefaultsOnly, Category=Effects)
+	FVector MuzzleFXScale;
+
 	/** spawned component for muzzle FX */
 	UPROPERTY(Transient)
     UParticleSystemComponent* MuzzleParticleComp;

@@ -37,6 +37,7 @@ AWeapon::AWeapon()
     CurrentAmmo = 0;
     CurrentAmmoInClip = 0;
     LastFireTime = 0.0f;
+    MuzzleFXScale = FVector::OneVector;
     
     PrimaryActorTick.bCanEverTick = true;
     PrimaryActorTick.TickGroup = TG_PrePhysics;
@@ -245,6 +246,7 @@ void AWeapon::SimulateWeaponFire()
     if (MuzzleFX)
     {
         MuzzleParticleComp = UGameplayStatics::SpawnEmitterAttached(MuzzleFX, MeshComp, MuzzleSocketName);
+        MuzzleParticleComp->SetWorldScale3D(MuzzleFXScale);
     }
     
     // TODO: Implement looping sound
@@ -623,11 +625,14 @@ FVector AWeapon::GetCameraDamageStartLocation(const FVector& AimDir) const
     if (PC)
     {
         // use player's camera
-        FRotator UnusedRot;
-        PC->GetPlayerViewPoint(OutStartTrace, UnusedRot);
+        FRotator CameraRot;
+        PC->GetPlayerViewPoint(OutStartTrace, CameraRot);
 
         // Adjust trace so there is nothing blocking the ray between the camera and the pawn, and calculate distance from adjusted start
         OutStartTrace = OutStartTrace + AimDir * ((GetInstigator()->GetActorLocation() - OutStartTrace) | AimDir);
+
+        // Move Starting point ahead at a distance between camera and muzzle  
+        OutStartTrace = OutStartTrace + CameraRot.Vector() * (OutStartTrace - GetMuzzleLocation()).Size();
     }
 
     return OutStartTrace;

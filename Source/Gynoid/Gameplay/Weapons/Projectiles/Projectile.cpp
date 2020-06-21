@@ -4,6 +4,7 @@
 #include "Projectile.h"
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "Components/SphereComponent.h"
+#include "Kismet/GameplayStatics.h"
 #include "Particles/ParticleSystemComponent.h"
 
 
@@ -20,6 +21,7 @@ AProjectile::AProjectile()
 	// Players can't walk on it
 	CollisionComp->SetWalkableSlopeOverride(FWalkableSlopeOverride(WalkableSlope_Unwalkable, 0.f));
 	CollisionComp->CanCharacterStepUpOn = ECB_No;
+	CollisionComp->SetCollisionProfileName("BlockAllDynamic");
 	
 	SetRootComponent(CollisionComp);
 
@@ -87,6 +89,10 @@ void AProjectile::OnOverlap(
     const FHitResult& SweepResult)
 {
 	UE_LOG(LogTemp, Warning, TEXT("AProjectile::OnBoxOverlap"));
+
+
+
+	// Destroy();
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -95,6 +101,11 @@ void AProjectile::OnOverlap(
 void AProjectile::OnImpact(const FHitResult& ImpactResult)
 {
 	UE_LOG(LogTemp, Warning, TEXT("AProjectile::OnImpact"));
+
+	if (ImpactFX)
+	{
+		UGameplayStatics::SpawnEmitterAtLocation(this, ImpactFX, GetActorLocation(), GetActorRotation());
+	}
 
 	Destroy();
 }
